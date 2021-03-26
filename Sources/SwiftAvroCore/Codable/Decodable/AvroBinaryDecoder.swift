@@ -63,9 +63,12 @@ internal final class AvroBinaryDecoder: Decoder {
     }
 
     internal func singleValueContainer() throws -> SingleValueDecodingContainer {
-        if case .primitive(_) = datum {
+        switch datum {
+        case .primitive(_):
             return try AvroSingleValueDecodingContainer(decoder: self, datum: datum, codingPath: codingPath)
-        } else {
+        case .logical(_):
+            return try AvroSingleValueDecodingContainer(decoder: self, datum: datum, codingPath: codingPath)
+        default:
             throw BinaryDecodingError.typeMismatchWithSchema
         }
     }

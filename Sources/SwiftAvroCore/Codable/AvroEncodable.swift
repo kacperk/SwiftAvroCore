@@ -398,10 +398,19 @@ extension EncodingHelper {
         }
     }
     mutating func encode(_ value: Bool) throws {
-        if !schema.isBoolean() {
+        switch schema {
+        case .booleanSchema:
+            encoder.primitive.encode(value)
+        case .unionSchema(let union):
+            if let id = union.branches.firstIndex(of: .booleanSchema) {
+                encoder.primitive.encode(id)
+                encoder.primitive.encode(value)
+            } else {
+                throw BinaryEncodingError.typeMismatchWithSchema
+            }
+        default:
             throw BinaryEncodingError.typeMismatchWithSchema
         }
-        encoder.primitive.encode(value)
     }
     mutating func encode(_ value: Int) throws {
         if !schema.isLong() {

@@ -309,6 +309,7 @@ class AvroEnodableTest: XCTestCase {
             XCTAssert(false, "Failed. Nil value")
         }
     }
+
     func testUnion() {
         let avroBytes: [UInt8] = [0x02, 0x02, 0x61]
         let jsonSchema = "[\"null\",\"string\"]"
@@ -322,7 +323,18 @@ class AvroEnodableTest: XCTestCase {
         } else {
             XCTAssert(false, "Failed. Nil value")
         }
-        
+    }
+
+    func testBoolUnion() throws {
+        let avroBytes: [UInt8] = [0x02, 0x00]
+        let jsonSchema = "[\"null\",\"boolean\"]"
+        let source: Bool? = false
+        let avro = Avro()
+        let schema = avro.decodeSchema(schema: jsonSchema)!
+        let encoder = AvroEncoder()
+        let data = Data(avroBytes)
+        let value = try encoder.encode(source, schema: schema)
+        XCTAssertEqual(value, data, "Byte arrays don't match.")
     }
     
     func testUnionUUID() throws {
@@ -342,9 +354,9 @@ class AvroEnodableTest: XCTestCase {
         encoder = AvroEncoder()
         let nilValue = try encoder.encode(source, schema: schema)
         XCTAssertEqual(nilValue, Data([0x0]), "Byte arrays don't match.")
-        
+
     }
-    
+
     func testUnionNull() {
         let avroBytes: [UInt8] = [0x0]
         let jsonSchema = "[\"null\",\"string\"]"

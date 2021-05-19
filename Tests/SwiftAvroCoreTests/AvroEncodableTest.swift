@@ -18,6 +18,7 @@
 
 import XCTest
 @testable import SwiftAvroCore
+
 class AvroEnodableTest: XCTestCase {
     var schema: AvroSchema = AvroSchema()
     override func setUp() {
@@ -399,6 +400,7 @@ class AvroEnodableTest: XCTestCase {
             let requestType: [UInt8]
             let parameter: [Int32]
             let parameter2: [String: Int32]
+            let parameter3: Bool?
         }
 
         struct Wrapper: Codable {
@@ -414,17 +416,18 @@ class AvroEnodableTest: XCTestCase {
     {"name": "requestName", "type": "string"},
     {"name": "requestType", "type": {"type": "fixed", "size": 4}},
     {"name": "parameter", "type": {"type":"array", "items": "int"}},
-    {"name": "parameter2", "type": {"type":"map", "values": "int"}}]}},
+    {"name": "parameter2", "type": {"type":"map", "values": "int"}},
+     {"name": "parameter3", "type": ["null", "boolean"]}]}},
 {"name": "name", "type": "string"}
 ]}
 """
         let schema = Avro().decodeSchema(schema: schemaJson)!
-        let model = Model(requestId: 42, requestName: "hello", requestType: [1,2,3,4], parameter: [1,2], parameter2: ["foo": 2])
+        let model = Model(requestId: 42, requestName: "hello", requestType: [1,2,3,4], parameter: [1,2], parameter2: ["foo": 2], parameter3: false)
         let wrapper = Wrapper(message: model, name: "test")
         let encoder = AvroEncoder()
         let data = try! encoder.encode(wrapper, schema: schema)
 
-        let expected: Data = Data([0x54, 0x0a, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x01, 0x02, 0x03, 0x04, 0x04, 0x02, 0x04, 0x0, 0x02, 0x06, 0x66, 0x6f, 0x6f, 0x04, 0x0, 0x08, 0x74, 0x65, 0x73, 0x74])
+        let expected: Data = Data([0x54, 0x0a, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x01, 0x02, 0x03, 0x04, 0x04, 0x02, 0x04, 0x0, 0x02, 0x06, 0x66, 0x6f, 0x6f, 0x04, 0x0, 0x02, 0x0, 0x08, 0x74, 0x65, 0x73, 0x74])
         XCTAssertEqual(data, expected)
     }
     

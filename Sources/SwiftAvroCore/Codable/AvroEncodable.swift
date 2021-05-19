@@ -143,24 +143,53 @@ fileprivate struct  AvroKeyedEncodingContainer<K: CodingKey>: KeyedEncodingConta
     var encoder: AvroBinaryEncoder
     
     mutating func encodeNil(forKey key: K) throws {
-        guard self.schema(key).isNull() else {
+        switch schema(key) {
+        case .nullSchema:
+            encoder.primitive.encodeNull()
+        case .unionSchema(let union):
+            guard let id = union.branches.firstIndex(of: .nullSchema) else {
+                throw BinaryEncodingError.typeMismatchWithSchema
+            }
+            encoder.primitive.encode(id)
+            encoder.primitive.encodeNull()
+        default:
             throw BinaryEncodingError.typeMismatchWithSchema
         }
-        encoder.primitive.encodeNull()
     }
     
     mutating func encode(_ value: Bool, forKey key: K) throws {
-        guard self.schema(key).isBoolean() else {
+        switch schema(key) {
+        case .booleanSchema:
+            encoder.primitive.encode(value)
+        case .unionSchema(let union):
+            guard let id = union.branches.firstIndex(of: .booleanSchema) else {
+                throw BinaryEncodingError.typeMismatchWithSchema
+            }
+            encoder.primitive.encode(id)
+            encoder.primitive.encode(value)
+        default:
             throw BinaryEncodingError.typeMismatchWithSchema
         }
-        encoder.primitive.encode(value)
     }
     
     mutating func encode(_ value: String, forKey key: K) throws {
-        guard self.schema(key).isString() else {
+        switch schema(key) {
+        case .stringSchema:
+            encoder.primitive.encode(value)
+        case .enumSchema(let attribute):
+            if let id = attribute.symbols.firstIndex(of: value) {
+                encoder.primitive.encode(id)
+            } else {
+                throw BinaryEncodingError.typeMismatchWithSchema
+            }
+        case .unionSchema(let union):
+            if let id = union.branches.firstIndex(of: .stringSchema(AvroSchema.StringSchema())) {
+                encoder.primitive.encode(id)
+                encoder.primitive.encode(value)
+            }
+        default:
             throw BinaryEncodingError.typeMismatchWithSchema
         }
-        encoder.primitive.encode(value)
     }
     
     mutating func encode(_ value: Double, forKey key: K) throws {
@@ -402,12 +431,11 @@ extension EncodingHelper {
         case .booleanSchema:
             encoder.primitive.encode(value)
         case .unionSchema(let union):
-            if let id = union.branches.firstIndex(of: .booleanSchema) {
-                encoder.primitive.encode(id)
-                encoder.primitive.encode(value)
-            } else {
+            guard let id = union.branches.firstIndex(of: .booleanSchema) else {
                 throw BinaryEncodingError.typeMismatchWithSchema
             }
+            encoder.primitive.encode(id)
+            encoder.primitive.encode(value)
         default:
             throw BinaryEncodingError.typeMismatchWithSchema
         }
